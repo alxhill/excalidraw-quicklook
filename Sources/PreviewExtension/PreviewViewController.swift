@@ -25,6 +25,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
     override func loadView() {
         let container = NSView(frame: CGRect(x: 0, y: 0, width: 800, height: 600))
+        container.wantsLayer = true
         container.addSubview(imageView)
         container.addSubview(messageLabel)
         NSLayoutConstraint.activate([
@@ -58,7 +59,10 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
             let size = NSSize(width: CGFloat(image.width) / scale, height: CGFloat(image.height) / scale)
             imageView.image = NSImage(cgImage: image, size: size)
-            view.layer?.backgroundColor = NSColor.white.cgColor
+            // Match the canvas so the letterbox around a non-square drawing is
+            // the drawing's own background, not the panel's.
+            view.layer?.backgroundColor =
+                Colors.parse(scene.backgroundColor) ?? NSColor.white.cgColor
             preferredContentSize = size
             handler(nil)
         } catch {
