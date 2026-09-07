@@ -96,9 +96,11 @@ status:
 	@echo "== installed"
 	@test -d "$(INSTALLED)" && echo "$(INSTALLED)" || echo "not installed"
 	@echo
-	@echo "== registered extensions"
-	@pluginkit -m -v -p com.apple.quicklook.preview 2>/dev/null | grep -i excalidraw || echo "preview: not registered"
-	@pluginkit -m -v -p com.apple.quicklook.thumbnail 2>/dev/null | grep -i excalidraw || echo "thumbnail: not registered"
+	@echo "== registered extensions (a leading + means enabled)"
+	@# -p com.apple.quicklook.thumbnail lists nothing even when the thumbnail
+	@# extension is live, so ask for everything and filter by bundle id.
+	@pluginkit -m -v -A 2>/dev/null | grep -i excalidraw || echo "none registered"
+
 	@echo
 	@echo "== .excalidraw content type"
 	@mdls -name kMDItemContentType $(or $(FILE),$(firstword $(wildcard Tests/Fixtures/*.excalidraw))) 2>/dev/null || true
