@@ -23,6 +23,19 @@ a dynamic UTI that no extension can bind to. The app therefore declares
 does **not** conform to `public.json`: with it, macOS routes previews to its own
 text previewer and you get a wall of element JSON instead of the drawing.
 
+## In the preview
+
+The preview opens zoomed to fit and is a live canvas, not a flat image:
+
+| | |
+| --- | --- |
+| Pinch, or ⌘/⌥ + scroll | Zoom |
+| Scroll, or two-finger drag | Pan |
+| Double-click | Toggle between fit and zoomed in |
+
+Zooming redraws the vectors rather than magnifying pixels, so strokes and text
+stay sharp all the way in, and only the elements actually on screen are drawn.
+
 ## Rendering
 
 The drawing is rendered natively with CoreGraphics — there is no embedded
@@ -71,6 +84,11 @@ stroke style, arrowhead and font family in one canvas.
 If a preview looks stale after a reinstall, `make install` already resets the
 QuickLook caches and restarts Finder; `qlmanage -p file.excalidraw` renders one
 through the real extension for debugging.
+
+`make install` re-checks registration afterwards and fails if it did not take.
+That is not paranoia: `pluginkit -a` accepts a registration made just after the
+bundle was replaced and then quietly drops it, which leaves previews dead with
+nothing in the log and an install that claimed to succeed.
 
 The build is one `swiftc` invocation per target driven by the `Makefile` — no
 Xcode project. It compiles for the host architecture; set

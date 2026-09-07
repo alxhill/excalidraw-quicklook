@@ -22,6 +22,73 @@ struct RenderOptions {
 }
 
 enum SceneRenderer {
+    /// The drawing at 1:1 plus padding, in points.
+    static func contentSize(of scene: Scene, padding: CGFloat) -> CGSize {
+        let bounds = self.bounds(of: scene)
+        return CGSize(
+            width: max(bounds.width + padding * 2, 1),
+            height: max(bounds.height + padding * 2, 1)
+        )
+    }
+
+    /// Draws the scene fitted and centred inside `rect` of an existing y-up
+    /// context. Used directly by the preview, which draws at whatever zoom the
+    /// scroll view is at so text and strokes stay crisp, and via `render`
+    /// below for thumbnails.
+    static func draw(
+        _ scene: Scene,
+        in ctx: CGContext,
+        fitting rect: CGRect,
+        padding: CGFloat = 12,
+        maximumZoom: CGFloat = .greatestFiniteMagnitude
+    ) {
+        let bounds = self.bounds(of: scene)
+        guard bounds.width > 0, bounds.height > 0 else { return }
+
+        let available = CGSize(
+            width: max(rect.width - padding * 2, 1),
+            height: max(rect.height - padding * 2, 1)
+        )
+        let zoom = min(
+            maximumZoom,
+            min(available.width / bounds.width, available.height / bounds.height)
+        )
+
+        ctx.saveGState()
+        defer { ctx.restoreGState() }
+
+        // Flip into Excalidraw's y-down space within the target rect.
+        ctx.translateBy(x: rect.minX, y: rect.minY + rect.height)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.translateBy(
+            x: (rect.width - bounds.width * zoom) / 2,
+            y: (rect.height - bounds.height * zoom) / 2
+        )
+        ctx.scaleBy(x: zoom, y: zoom)
+        ctx.translateBy(x: -bounds.minX, y: -bounds.minY)
+
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+        ctx.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
+        ctx.interpolationQuality = .high
+
+        let labels = Dictionary(
+            scene.elements
+                .filter { $0.type == "text" }
+                .compactMap { element in element.containerId.map { ($0, element) } },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        // The clip box is in scene coordinates now, so zoomed-in scrolling only
+        // pays for the elements actually on screen.
+        let visible = ctx.boundingBoxOfClipPath.insetBy(dx: -64, dy: -64)
+
+        for element in scene.elements {
+            if let box = self.bounds(of: element), !box.intersects(visible) { continue }
+            draw(element, in: ctx, scene: scene, labels: labels)
+        }
+    }
+
     static func render(_ scene: Scene, options: RenderOptions) -> CGImage? {
         let bounds = self.bounds(of: scene)
         guard bounds.width > 0, bounds.height > 0 else { return nil }
@@ -57,29 +124,11 @@ enum SceneRenderer {
         ctx.setFillColor(Colors.parse(scene.backgroundColor) ?? CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
         ctx.fill(CGRect(origin: .zero, size: pixelSize))
 
-        // Flip into Excalidraw's y-down space, then map scene coords to points.
-        ctx.translateBy(x: 0, y: pixelSize.height)
-        ctx.scaleBy(x: 1, y: -1)
         ctx.scaleBy(x: options.scale, y: options.scale)
-        ctx.translateBy(x: options.padding, y: options.padding)
-        ctx.scaleBy(x: zoom, y: zoom)
-        ctx.translateBy(x: -bounds.minX, y: -bounds.minY)
-
-        ctx.setLineCap(.round)
-        ctx.setLineJoin(.round)
-        ctx.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
-        ctx.interpolationQuality = .high
-
-        let labels = Dictionary(
-            scene.elements
-                .filter { $0.type == "text" }
-                .compactMap { element in element.containerId.map { ($0, element) } },
-            uniquingKeysWith: { first, _ in first }
+        draw(
+            scene, in: ctx, fitting: CGRect(origin: .zero, size: pointSize),
+            padding: options.padding, maximumZoom: options.maximumZoom
         )
-
-        for element in scene.elements {
-            draw(element, in: ctx, scene: scene, labels: labels)
-        }
 
         return ctx.makeImage()
     }

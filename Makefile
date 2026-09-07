@@ -65,18 +65,37 @@ build/excalidraw-render: $(KIT) Sources/RenderCLI/main.swift
 
 ## Install into $(INSTALL_DIR) and register the extensions with the system.
 install: app
+	@if [ -d "$(INSTALLED)" ]; then \
+		pluginkit -r "$(INSTALLED)/Contents/PlugIns/ExcalidrawPreview.appex" 2>/dev/null || true; \
+		pluginkit -r "$(INSTALLED)/Contents/PlugIns/ExcalidrawThumbnail.appex" 2>/dev/null || true; \
+	fi
 	rm -rf "$(INSTALLED)"
 	cp -R "$(APP)" "$(INSTALLED)"
 	$(LSREGISTER) -f "$(INSTALLED)"
-	pluginkit -a "$(INSTALLED)/Contents/PlugIns/ExcalidrawPreview.appex" || true
-	pluginkit -a "$(INSTALLED)/Contents/PlugIns/ExcalidrawThumbnail.appex" || true
-	pluginkit -e use -i $(APP_ID).preview || true
-	pluginkit -e use -i $(APP_ID).thumbnail || true
-	qlmanage -r >/dev/null 2>&1 || true
-	qlmanage -r cache >/dev/null 2>&1 || true
-	killall -q Finder || true
+	@# pluginkit will accept an -a made moments after the bundle was replaced
+	@# and then quietly drop it, leaving previews dead with nothing in the log.
+	@# So add, wait, check, and retry instead of trusting the exit code.
+	@for attempt in 1 2 3 4 5; do \
+		pluginkit -a "$(INSTALLED)/Contents/PlugIns/ExcalidrawPreview.appex" 2>/dev/null || true; \
+		pluginkit -a "$(INSTALLED)/Contents/PlugIns/ExcalidrawThumbnail.appex" 2>/dev/null || true; \
+		sleep 1; \
+		if [ "$$(pluginkit -m -v -A 2>/dev/null | grep -c '$(APP_ID)\.')" -ge 2 ]; then break; fi; \
+		echo "  registration did not stick (attempt $$attempt), retrying"; \
+	done
+	@pluginkit -e use -i $(APP_ID).preview 2>/dev/null || true
+	@pluginkit -e use -i $(APP_ID).thumbnail 2>/dev/null || true
+	@qlmanage -r >/dev/null 2>&1 || true
+	@qlmanage -r cache >/dev/null 2>&1 || true
+	@killall -q Finder || true
+	@registered=$$(pluginkit -m -v -A 2>/dev/null | grep -c '$(APP_ID)\.'); \
+	if [ "$$registered" -lt 2 ]; then \
+		echo; \
+		echo "ERROR: only $$registered of 2 extensions registered."; \
+		echo "Try 'make reinstall', then 'make status'."; \
+		exit 1; \
+	fi
 	@echo
-	@echo "installed to $(INSTALLED)"
+	@echo "installed to $(INSTALLED), both extensions registered"
 	@echo "select a .excalidraw file in Finder and press space."
 
 uninstall:
