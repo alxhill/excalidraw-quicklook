@@ -64,8 +64,31 @@ For text that matches the editor exactly:
     make fonts && make install
 
 That converts the fonts from the excalidraw repo to ttf into `Resources/Fonts`,
-which the build copies into the app. It needs network access and `uv`, and the
-output is gitignored rather than redistributed.
+which the build copies into the app. It needs network access and `uv`.
+
+#### Licensing
+
+This repository distributes no font files at all — `make fonts` fetches and
+converts them on your machine, and the output is gitignored. Six of the seven
+are SIL OFL 1.1 (Excalifont, Nunito, Cascadia Code, Lilita One, Assistant,
+Virgil) and Comic Shanns is MIT. Both licences grant modification outright and
+attach their conditions to *redistribution*, so converting them for your own
+previews carries no obligation. `make fonts` writes the per-font details to
+`Resources/Fonts/LICENCES.md`.
+
+Redistributing a **built app** with the fonts inside is a different question,
+and two things would need fixing first:
+
+- Cascadia Code and Lilita One have Reserved Font Names, and this script
+  deliberately renames each modified font back to its canonical family so
+  CoreText can find it — precisely what OFL clause 3 forbids for a modified
+  version. Excalifont is also a trademark of Excalidraw, which its licence does
+  not cover.
+- Excalidraw's own subsetting already stripped the embedded licence records from
+  several of these files, so the notices no longer travel inside the fonts and
+  would have to be shipped alongside them.
+
+None of that applies to the default build, which ships no fonts.
 
 ## Working on it
 
