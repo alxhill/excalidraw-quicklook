@@ -1,0 +1,7 @@
+build/
+
+# Converted from Excalidraw's woff2 originals by `make fonts`; not ours to ship.
+Resources/Fonts/*
+!Resources/Fonts/.gitkeep
+
+.DS_Store

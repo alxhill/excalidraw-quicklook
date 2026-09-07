@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Excalidraw QuickLook</string>
+	<key>CFBundleExecutable</key>
+	<string>ExcalidrawQuickLook</string>
+	<key>CFBundleIdentifier</key>
+	<string>dev.alxhill.excalidraw-quicklook</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Excalidraw QuickLook</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>MIT licensed</string>
+
+	<!-- Nothing on the system claims the .excalidraw extension, so it resolves
+	     to a dynamic UTI and no QuickLook extension can bind to it. Declaring
+	     the type here gives it a stable identifier the extensions can name.
+	     Imported rather than exported: this app did not invent the format.
+
+	     Deliberately NOT conforming to public.json: an .excalidraw file is
+	     JSON, but with that conformance macOS hands previews to its built-in
+	     text previewer instead of the extension below, and you get a wall of
+	     element JSON where the drawing should be. -->
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.excalidraw.excalidraw</string>
+			<key>UTTypeDescription</key>
+			<string>Excalidraw Drawing</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.content</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>excalidraw</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.excalidraw.excalidrawlib</string>
+			<key>UTTypeDescription</key>
+			<string>Excalidraw Library</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.content</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>excalidrawlib</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>
