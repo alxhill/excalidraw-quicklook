@@ -207,9 +207,9 @@ final class ViewerWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     @objc func openInExcalidraw(_ sender: Any?) {
         guard let fileURL else { return }
         switch OpenIn.excalidraw(fileURL) {
-        case .app:
+        case .app, .website:
             break
-        case .website:
+        case .websiteWithoutDrawing:
             notice("excalidraw.com opened — drop \(fileURL.lastPathComponent) onto the canvas to load it.")
         }
     }
