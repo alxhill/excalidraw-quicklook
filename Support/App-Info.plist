@@ -8,6 +8,8 @@
 	<string>Excalidraw QuickLook</string>
 	<key>CFBundleExecutable</key>
 	<string>ExcalidrawQuickLook</string>
+	<key>CFBundleIconFile</key>
+	<string>ExcalidrawQuickLook</string>
 	<key>CFBundleIdentifier</key>
 	<string>dev.alxhill.excalidraw-quicklook</string>
 	<key>CFBundleInfoDictionaryVersion</key>

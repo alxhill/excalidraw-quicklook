@@ -9,6 +9,7 @@ INSTALL_DIR ?= /Applications
 INSTALLED   := $(INSTALL_DIR)/ExcalidrawQuickLook.app
 
 SWIFTC      := xcrun swiftc
+SWIFT       := xcrun swift
 TARGET      := $(shell uname -m)-apple-macos13.0
 SWIFT_FLAGS := -O -swift-version 5 -target $(TARGET)
 
@@ -16,16 +17,17 @@ KIT        := $(wildcard Sources/ExcalidrawKit/*.swift)
 UI         := $(wildcard Sources/ExcalidrawUI/*.swift)
 HOST       := $(wildcard Sources/Host/*.swift)
 SOURCES    := $(KIT) $(wildcard Sources/*/*.swift)
+ICON       := build/ExcalidrawQuickLook.icns
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-.PHONY: all app cli install uninstall reinstall status test fonts clean
+.PHONY: all app cli icon install uninstall reinstall status test fonts clean
 
 all: app cli
 
 ## Build the host app with both extensions inside it.
 app: $(APP)
 
-$(APP): $(SOURCES) $(wildcard Support/*) $(wildcard Resources/Fonts/*)
+$(APP): $(SOURCES) $(wildcard Support/*) $(wildcard Resources/Fonts/*) $(ICON)
 	rm -rf "$(APP)"
 	mkdir -p "$(APP)/Contents/MacOS" "$(APP)/Contents/Resources" "$(APP)/Contents/PlugIns"
 	cp Support/App-Info.plist "$(APP)/Contents/Info.plist"
@@ -38,6 +40,7 @@ $(APP): $(SOURCES) $(wildcard Support/*) $(wildcard Resources/Fonts/*)
 		FRAMEWORKS="-framework AppKit -framework Quartz"
 	$(MAKE) appex KIND=Thumbnail EXEC=ExcalidrawThumbnail \
 		FRAMEWORKS="-framework AppKit -framework QuickLookThumbnailing"
+	cp "$(ICON)" "$(APP)/Contents/Resources/"
 	if [ -n "$$(ls Resources/Fonts/*.ttf Resources/Fonts/*.otf 2>/dev/null)" ]; then \
 		mkdir -p "$(APP)/Contents/Resources/Fonts"; \
 		cp Resources/Fonts/*.ttf Resources/Fonts/*.otf "$(APP)/Contents/Resources/Fonts/" 2>/dev/null || true; \
@@ -66,6 +69,15 @@ build/excalidraw-render: $(KIT) Sources/RenderCLI/main.swift
 	mkdir -p build
 	$(SWIFTC) $(SWIFT_FLAGS) -module-name ExcalidrawRender \
 		-o $@ $(KIT) Sources/RenderCLI/main.swift
+
+## The app icon is itself an .excalidraw drawing, rendered by the CLI above and
+## wrapped in the rounded card macOS expects. Generated, not committed.
+icon: $(ICON)
+
+$(ICON): Resources/Icon.excalidraw scripts/make-iconset.swift build/excalidraw-render
+	./build/excalidraw-render Resources/Icon.excalidraw build/icon-sketch.png --size 1024 --scale 1
+	$(SWIFT) scripts/make-iconset.swift build/icon-sketch.png build/ExcalidrawQuickLook.iconset
+	iconutil -c icns build/ExcalidrawQuickLook.iconset -o $@
 
 ## Install into $(INSTALL_DIR) and register the extensions with the system.
 install: app

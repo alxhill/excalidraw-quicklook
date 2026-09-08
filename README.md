@@ -53,6 +53,10 @@ elsewhere, and drawings can be dropped onto the window.
 The app appears in Finder's *Open With* menu but deliberately ranks itself as
 an alternate handler, so double-clicking a drawing still opens your editor.
 
+Its icon is `Resources/Icon.excalidraw` — a drawing this project renders with
+its own renderer, wrapped in the rounded card macOS expects and packed into an
+`.icns` at build time, so no image files are committed either.
+
 ## In the preview
 
 The preview and the app share one canvas, which opens zoomed to fit and is
@@ -129,6 +133,7 @@ None of that applies to the default build, which ships no fonts.
     ./build/excalidraw-render in.excalidraw out.png --size 1400
     make app                                     # build the app + extensions
     ./build/*.app/Contents/MacOS/ExcalidrawQuickLook in.excalidraw
+    make icon                                    # regenerate the app icon
     make test                                    # render Tests/Fixtures
     make test FILES="$(ls ~/drawings/*.excalidraw)"
     make status                                  # what the system has registered
