@@ -13,6 +13,8 @@ TARGET      := $(shell uname -m)-apple-macos13.0
 SWIFT_FLAGS := -O -swift-version 5 -target $(TARGET)
 
 KIT        := $(wildcard Sources/ExcalidrawKit/*.swift)
+UI         := $(wildcard Sources/ExcalidrawUI/*.swift)
+HOST       := $(wildcard Sources/Host/*.swift)
 SOURCES    := $(KIT) $(wildcard Sources/*/*.swift)
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
@@ -31,9 +33,11 @@ $(APP): $(SOURCES) $(wildcard Support/*) $(wildcard Resources/Fonts/*)
 	$(SWIFTC) $(SWIFT_FLAGS) -module-name ExcalidrawQuickLook \
 		-framework AppKit \
 		-o "$(APP)/Contents/MacOS/ExcalidrawQuickLook" \
-		Sources/Host/main.swift
-	$(MAKE) appex KIND=Preview EXEC=ExcalidrawPreview FRAMEWORKS="-framework AppKit -framework Quartz"
-	$(MAKE) appex KIND=Thumbnail EXEC=ExcalidrawThumbnail FRAMEWORKS="-framework AppKit -framework QuickLookThumbnailing"
+		$(KIT) $(UI) $(HOST)
+	$(MAKE) appex KIND=Preview EXEC=ExcalidrawPreview EXTRA="$(UI)" \
+		FRAMEWORKS="-framework AppKit -framework Quartz"
+	$(MAKE) appex KIND=Thumbnail EXEC=ExcalidrawThumbnail \
+		FRAMEWORKS="-framework AppKit -framework QuickLookThumbnailing"
 	if [ -n "$$(ls Resources/Fonts/*.ttf Resources/Fonts/*.otf 2>/dev/null)" ]; then \
 		mkdir -p "$(APP)/Contents/Resources/Fonts"; \
 		cp Resources/Fonts/*.ttf Resources/Fonts/*.otf "$(APP)/Contents/Resources/Fonts/" 2>/dev/null || true; \
@@ -50,7 +54,7 @@ appex:
 	$(SWIFTC) $(SWIFT_FLAGS) -module-name $(EXEC) $(FRAMEWORKS) \
 		-Xlinker -e -Xlinker _NSExtensionMain \
 		-o "$(APP)/Contents/PlugIns/$(EXEC).appex/Contents/MacOS/$(EXEC)" \
-		$(KIT) Sources/$(KIND)Extension/*.swift
+		$(KIT) $(EXTRA) Sources/$(KIND)Extension/*.swift
 	codesign --force --sign - --timestamp=none \
 		--entitlements Support/Extension.entitlements \
 		"$(APP)/Contents/PlugIns/$(EXEC).appex"

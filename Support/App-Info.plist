@@ -29,6 +29,37 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>MIT licensed</string>
 
+	<!-- So the viewer app shows up in Finder's Open With menu. Ranked
+	     Alternate rather than Owner: a double-click should still go to
+	     whatever the person edits drawings in, not to this read-only app. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Excalidraw Drawing</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.excalidraw.excalidraw</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Excalidraw Library</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.excalidraw.excalidrawlib</string>
+			</array>
+		</dict>
+	</array>
+
 	<!-- Nothing on the system claims the .excalidraw extension, so it resolves
 	     to a dynamic UTI and no QuickLook extension can bind to it. Declaring
 	     the type here gives it a stable identifier the extensions can name.
