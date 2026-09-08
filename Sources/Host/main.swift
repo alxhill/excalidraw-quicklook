@@ -1,40 +1,113 @@
 import AppKit
+import UniformTypeIdentifiers
 
-// The extensions have to live inside an app bundle, and macOS only registers
-// them once that app has been seen in a normal Applications folder. This app's
-// only job is to be that container, and to say so if someone opens it.
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var window: NSWindow?
+/// The app is both the container the QuickLook extensions have to live inside
+/// and a read-only viewer for the files they preview.
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    private var windows: [ViewerWindow] = []
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        Fonts.registerBundledFonts(in: Bundle.main.resourceURL?.appendingPathComponent("Fonts"))
+        NSApp.mainMenu = MainMenu.build(recentDelegate: self)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let text = """
-        Excalidraw QuickLook is installed.
+        // Handy when working on the app: ExcalidrawQuickLook drawing.excalidraw
+        open(CommandLine.arguments.dropFirst().filter { !$0.hasPrefix("-") }.map(URL.init(fileURLWithPath:)))
 
-        Select an .excalidraw file in Finder and press space to preview it.
-        Finder icons show the drawing too.
+        // Files opened from Finder arrive in their own callback, which may not
+        // have run yet, so decide about an empty window one turn later.
+        DispatchQueue.main.async { [self] in
+            if windows.isEmpty { showWindow(for: nil) }
+        }
+    }
 
-        This window does nothing else — the previews are provided by two
-        extensions inside this app. They stop working if you move or delete it.
-        """
+    func application(_ application: NSApplication, open urls: [URL]) {
+        open(urls)
+    }
 
-        let label = NSTextField(wrappingLabelWithString: text)
-        label.font = .systemFont(ofSize: 13)
-        label.frame = CGRect(x: 24, y: 24, width: 412, height: 180)
-
-        let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 460, height: 228),
-            styleMask: [.titled, .closable, .miniaturizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Excalidraw QuickLook"
-        window.contentView?.addSubview(label)
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        self.window = window
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if windows.isEmpty { showWindow(for: nil) }
+        return true
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+
+    // MARK: - Opening
+
+    private func open(_ urls: [URL]) {
+        for url in urls where FileManager.default.fileExists(atPath: url.path) {
+            showWindow(for: url)
+        }
+    }
+
+    private func showWindow(for url: URL?) {
+        if let url, let existing = windows.first(where: { $0.fileURL == url }) {
+            existing.window?.makeKeyAndOrderFront(nil)
+            existing.reload(nil)
+            return
+        }
+
+        // An empty window is a placeholder, so open into it rather than beside it.
+        let window = windows.first(where: { $0.fileURL == nil }) ?? makeWindow()
+        if let url { window.open(url) }
+        window.showWindow(nil)
+        window.window?.makeKeyAndOrderFront(nil)
+    }
+
+    private func makeWindow() -> ViewerWindow {
+        let window = ViewerWindow()
+        // The array is the only thing holding the controller, so let
+        // windowWillClose: return before it goes away.
+        window.onClose = { [weak self] closed in
+            DispatchQueue.main.async { self?.windows.removeAll { $0 === closed } }
+        }
+        window.onOpenFiles = { [weak self] urls in self?.open(urls) }
+        windows.append(window)
+        return window
+    }
+
+    @objc func openDocument(_ sender: Any?) {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        let types = ExcalidrawFile.extensions.compactMap { UTType(filenameExtension: $0) }
+        if !types.isEmpty { panel.allowedContentTypes = types }
+        guard panel.runModal() == .OK else { return }
+        open(panel.urls)
+    }
+
+    @objc private func openRecent(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        open([url])
+    }
+
+    // MARK: - Open Recent
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let recents = NSDocumentController.shared.recentDocumentURLs
+        for url in recents {
+            let item = menu.addItem(
+                withTitle: url.lastPathComponent, action: #selector(openRecent(_:)), keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = url
+            item.image = NSWorkspace.shared.icon(forFile: url.path)
+            item.image?.size = CGSize(width: 16, height: 16)
+        }
+        if recents.isEmpty {
+            menu.addItem(withTitle: "No Recent Files", action: nil, keyEquivalent: "").isEnabled = false
+            return
+        }
+        menu.addItem(.separator())
+        let clear = menu.addItem(
+            withTitle: "Clear Menu",
+            action: #selector(NSDocumentController.clearRecentDocuments(_:)),
+            keyEquivalent: ""
+        )
+        clear.target = NSDocumentController.shared
+    }
 }
 
 let application = NSApplication.shared

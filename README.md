@@ -1,7 +1,8 @@
 # Excalidraw QuickLook
 
-QuickLook previews and Finder thumbnails for `.excalidraw` files on macOS.
-Select a drawing, press space, see the drawing — not its JSON.
+QuickLook previews and Finder thumbnails for `.excalidraw` files on macOS,
+plus a small read-only viewer app. Select a drawing, press space, see the
+drawing — not its JSON.
 
     make install
 
@@ -14,8 +15,9 @@ delete it.
 
 Legacy `.qlgenerator` plugins stopped working in macOS 15 Sequoia. Previews now
 have to be app extensions (`.appex`) bundled inside a real app, so this repo
-builds a container app whose only job is to hold two extensions — one for the
-spacebar preview, one for Finder thumbnails.
+builds a container app holding two extensions — one for the spacebar preview,
+one for Finder thumbnails. Since that app has to exist anyway, it doubles as a
+viewer.
 
 Nothing on a stock system claims the `.excalidraw` extension, so it resolves to
 a dynamic UTI that no extension can bind to. The app therefore declares
@@ -23,9 +25,29 @@ a dynamic UTI that no extension can bind to. The app therefore declares
 does **not** conform to `public.json`: with it, macOS routes previews to its own
 text previewer and you get a wall of element JSON instead of the drawing.
 
+## The app
+
+`ExcalidrawQuickLook.app` opens a drawing in a window and gets out of the way.
+It never writes to the file — no editing, no autosave, nothing to lose — so its
+job is to show you the drawing and then hand it to something that can edit it:
+
+| | |
+| --- | --- |
+| Open in Excalidraw | The desktop app if installed, excalidraw.com if not |
+| Open in VS Code | Insiders, VSCodium, Code - OSS and Cursor count too |
+| Reveal | Shows the file in Finder |
+
+Those live in the toolbar and in the File menu, which names them after the apps
+you actually have. `⌘C` copies the drawing as a PNG, `⌘R` re-reads the file
+after you save it elsewhere, and drawings can be dropped onto the window.
+
+The app appears in Finder's *Open With* menu but deliberately ranks itself as
+an alternate handler, so double-clicking a drawing still opens your editor.
+
 ## In the preview
 
-The preview opens zoomed to fit and is a live canvas, not a flat image:
+The preview and the app share one canvas, which opens zoomed to fit and is
+live, not a flat image:
 
 | | |
 | --- | --- |
@@ -40,9 +62,11 @@ stay sharp all the way in, and only the elements actually on screen are drawn.
 
 The drawing is rendered natively with CoreGraphics — there is no embedded
 browser and no vendored JavaScript. `Sources/ExcalidrawKit` parses the document
-model and draws rectangles, diamonds, ellipses, lines, arrows, freedraw, text,
-embedded images and frames, including a port of the parts of roughjs that
-Excalidraw uses, seeded per element so the hand-drawn wobble matches the editor.
+model and draws it; `Sources/ExcalidrawUI` wraps that in the scrollable canvas
+the preview and the app both use. Between them they draw rectangles, diamonds,
+ellipses, lines, arrows, freedraw, text, embedded images and frames, including a
+port of the parts of roughjs that Excalidraw uses, seeded per element so the
+hand-drawn wobble matches the editor.
 
 Known differences from the real thing:
 
@@ -94,6 +118,8 @@ None of that applies to the default build, which ships no fonts.
 
     make cli                                     # build the renderer alone
     ./build/excalidraw-render in.excalidraw out.png --size 1400
+    make app                                     # build the app + extensions
+    ./build/*.app/Contents/MacOS/ExcalidrawQuickLook in.excalidraw
     make test                                    # render Tests/Fixtures
     make test FILES="$(ls ~/drawings/*.excalidraw)"
     make status                                  # what the system has registered
