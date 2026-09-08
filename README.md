@@ -45,8 +45,10 @@ whatever link it is given, and a `data:` URL is one the browser resolves itself.
 So the drawing rides along inside the link and opens ready to edit, without
 being uploaded anywhere. `.excalidrawlib` files are the exception — the library
 importer only accepts URLs on Excalidraw's own allowlist — as are drawings past
-a megabyte; those open the site with a note to drop the file onto the canvas. `⌘C` copies the drawing as a PNG, `⌘R` re-reads the file
-after you save it elsewhere, and drawings can be dropped onto the window.
+a megabyte; those open the site with a note to drop the file onto the canvas.
+
+`⌘C` copies the drawing as a PNG, `⌘R` re-reads the file after you save it
+elsewhere, and drawings can be dropped onto the window.
 
 The app appears in Finder's *Open With* menu but deliberately ranks itself as
 an alternate handler, so double-clicking a drawing still opens your editor.
