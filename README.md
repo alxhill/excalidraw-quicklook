@@ -38,7 +38,14 @@ job is to show you the drawing and then hand it to something that can edit it:
 | Reveal | Shows the file in Finder |
 
 Those live in the toolbar and in the File menu, which names them after the apps
-you actually have. `⌘C` copies the drawing as a PNG, `⌘R` re-reads the file
+you actually have.
+
+A local path means nothing to excalidraw.com, but its `#url=` loader fetches
+whatever link it is given, and a `data:` URL is one the browser resolves itself.
+So the drawing rides along inside the link and opens ready to edit, without
+being uploaded anywhere. `.excalidrawlib` files are the exception — the library
+importer only accepts URLs on Excalidraw's own allowlist — as are drawings past
+a megabyte; those open the site with a note to drop the file onto the canvas. `⌘C` copies the drawing as a PNG, `⌘R` re-reads the file
 after you save it elsewhere, and drawings can be dropped onto the window.
 
 The app appears in Finder's *Open With* menu but deliberately ranks itself as

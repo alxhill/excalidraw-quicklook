@@ -35,7 +35,10 @@ enum OpenIn {
 
     enum ExcalidrawTarget {
         case app(URL)
+        /// The website, with the drawing loaded into it.
         case website
+        /// The website, but the drawing had to be left behind.
+        case websiteWithoutDrawing
     }
 
     /// The desktop editor if it is installed, excalidraw.com otherwise.
@@ -45,9 +48,37 @@ enum OpenIn {
             open(file, with: app)
             return .app(app)
         }
-        NSWorkspace.shared.open(URL(string: "https://excalidraw.com")!)
-        return .website
+        if let loaded = websiteURL(loadingSceneAt: file) {
+            NSWorkspace.shared.open(loaded)
+            return .website
+        }
+        NSWorkspace.shared.open(website)
+        return .websiteWithoutDrawing
     }
+
+    private static let website = URL(string: "https://excalidraw.com")!
+
+    /// A local path means nothing to the website, but its `#url=` loader
+    /// fetches whatever it is handed and a `data:` URL is something the browser
+    /// resolves on its own — so the drawing rides along inside the link and is
+    /// never uploaded anywhere. Excalidraw then rewrites the address bar, so
+    /// the link does not linger.
+    ///
+    /// Two cases get nothing: `.excalidrawlib`, because the library importer
+    /// only accepts URLs on Excalidraw's own allowlist, and anything big enough
+    /// that a link carrying it looks unwise.
+    private static func websiteURL(loadingSceneAt file: URL) -> URL? {
+        guard file.pathExtension.lowercased() != "excalidrawlib",
+              let data = try? Data(contentsOf: file),
+              data.count <= inlineLimit else { return nil }
+
+        let inline = "data:application/json;base64,\(data.base64EncodedString())"
+        guard let encoded = inline.addingPercentEncoding(withAllowedCharacters: .alphanumerics)
+        else { return nil }
+        return URL(string: "https://excalidraw.com/#url=\(encoded)")
+    }
+
+    private static let inlineLimit = 1_000_000
 
     static func open(_ file: URL, with application: URL) {
         NSWorkspace.shared.open(
