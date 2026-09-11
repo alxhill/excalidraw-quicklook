@@ -6,9 +6,6 @@ final class SceneView: NSView {
     private let scene: Scene
     private let background: CGColor
 
-    /// Called with the click location in this view's coordinates.
-    var onDoubleClick: ((CGPoint) -> Void)?
-
     init(scene: Scene, size: CGSize) {
         self.scene = scene
         self.background =
@@ -63,43 +60,26 @@ final class SceneView: NSView {
         // and the scroll view's magnification supplies the zoom.
         SceneRenderer.draw(scene, in: ctx, fitting: bounds, padding: 0)
     }
-
-    override func mouseDown(with event: NSEvent) {
-        guard event.clickCount == 2 else { return super.mouseDown(with: event) }
-        onDoubleClick?(convert(event.locationInWindow, from: nil))
-    }
-
-    /// Trackpad pinch is handled by the scroll view; this adds the mouse and
-    /// modifier-scroll equivalent.
-    override func scrollWheel(with event: NSEvent) {
-        let zooming = event.modifierFlags.contains(.command) || event.modifierFlags.contains(.option)
-        guard zooming, let scrollView = enclosingScrollView else {
-            return super.scrollWheel(with: event)
-        }
-        let delta = event.hasPreciseScrollingDeltas
-            ? event.scrollingDeltaY * 0.01
-            : event.scrollingDeltaY * 0.05
-        guard delta != 0 else { return }
-        let magnification = max(
-            scrollView.minMagnification,
-            min(scrollView.maxMagnification, scrollView.magnification * (1 + delta))
-        )
-        scrollView.setMagnification(magnification, centeredAt: convert(event.locationInWindow, from: nil))
-    }
 }
 
-/// NSScrollView pins a document view smaller than the viewport to the top left;
-/// this keeps it centred, which is what you want for a drawing zoomed to fit.
-final class CenteringClipView: NSClipView {
+/// Lets the drawing be panned anywhere, like Excalidraw's own canvas, instead
+/// of pinning a document smaller than the viewport in place. A sliver of the
+/// drawing always stays on screen so it cannot be lost off the edge.
+final class CanvasClipView: NSClipView {
+    /// How much of the drawing must remain visible, in screen points.
+    var keepVisible: CGFloat = 48
+
     override func constrainBoundsRect(_ proposedBounds: NSRect) -> NSRect {
-        var rect = super.constrainBoundsRect(proposedBounds)
-        guard let documentView else { return rect }
-        if rect.width > documentView.frame.width {
-            rect.origin.x = (documentView.frame.width - rect.width) / 2
+        guard let documentView, proposedBounds.width > 0, proposedBounds.height > 0 else {
+            return super.constrainBoundsRect(proposedBounds)
         }
-        if rect.height > documentView.frame.height {
-            rect.origin.y = (documentView.frame.height - rect.height) / 2
-        }
+        let doc = documentView.frame
+        // Bounds are in document units, the frame in screen points; the ratio
+        // is the scroll view's magnification.
+        let inset = keepVisible / (frame.width / proposedBounds.width)
+        var rect = proposedBounds
+        rect.origin.x = min(max(rect.origin.x, doc.minX + inset - rect.width), doc.maxX - inset)
+        rect.origin.y = min(max(rect.origin.y, doc.minY + inset - rect.height), doc.maxY - inset)
         return rect
     }
 }

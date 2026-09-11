@@ -64,9 +64,14 @@ live, not a flat image:
 
 | | |
 | --- | --- |
-| Pinch, or ⌘/⌥ + scroll | Zoom |
-| Scroll, or two-finger drag | Pan |
+| Pinch, mouse wheel, or ⌘/⌥ + scroll | Zoom about the pointer |
+| Two-finger scroll | Pan |
+| ⇧ + wheel / ⌃ + wheel | Pan sideways / up and down with a mouse |
+| Middle-button drag | Pan |
 | Double-click | Toggle between fit and zoomed in |
+
+The canvas is unbounded, as in Excalidraw itself: the drawing can be dragged
+anywhere, but a sliver of it always stays on screen so it cannot be lost.
 
 Zooming redraws the vectors rather than magnifying pixels, so strokes and text
 stay sharp all the way in, and only the elements actually on screen are drawn.
